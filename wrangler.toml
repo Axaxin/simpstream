@@ -1,0 +1,8 @@
+name = "flvworker"
+main = "worker.js"
+compatibility_date = "2023-01-01"
+
+[vars]
+# These values will be replaced with actual values in the Cloudflare dashboard
+AUTH_PASSWORD = "your-secure-password"
+JWT_SECRET = "your-jwt-secret"

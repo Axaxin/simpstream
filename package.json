@@ -1,0 +1,15 @@
+{
+  "name": "flvworker",
+  "version": "1.0.0",
+  "description": "吉伊视频 - FLV播放器",
+  "scripts": {
+    "dev": "wrangler pages dev ./public",
+    "deploy": "wrangler pages deploy ./public"
+  },
+  "dependencies": {
+    "flv.js": "^1.6.2"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
