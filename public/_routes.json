@@ -3,15 +3,18 @@
   "include": [
     "/*"
   ],
-  "exclude": [],
+  "exclude": [
+    "/_*",
+    "/api/*"
+  ],
   "routes": [
-    {
-      "src": "/login",
-      "dest": "/login.html"
-    },
     {
       "src": "/",
       "dest": "/index.html"
+    },
+    {
+      "src": "/login",
+      "dest": "/login.html"
     }
   ]
 }
