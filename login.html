@@ -6,11 +6,13 @@
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
     <link rel="stylesheet" href="/styles/main.css">
 </head>
-<body class="login-page">
+<body>
     <div class="login-container">
         <h2>登录</h2>
-        <input type="password" id="password" placeholder="请输入密码">
-        <button onclick="login()">登录</button>
+        <form id="loginForm" onsubmit="event.preventDefault(); login();">
+            <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password">
+            <button type="submit">登录</button>
+        </form>
     </div>
     <script src="/scripts/auth.js"></script>
 </body>
