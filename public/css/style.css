@@ -2,7 +2,7 @@ body {
     margin: 0;
     padding: 20px;
     min-height: 100vh;
-    background: url('https://rack2disk.metacorn.cc/api/public/dl/q23aQyja?inline=true') center/cover fixed;
+    background: url('../jiyi.JPG') center/cover fixed;
     font-family: Arial, sans-serif;
     display: flex;
     flex-direction: column;
