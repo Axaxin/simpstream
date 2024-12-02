@@ -1,18 +1,17 @@
+// 检查是否已登录
+function isLoggedIn() {
+    return localStorage.getItem('auth') === '1';
+}
+
 // 简单的登录验证
 function login() {
-    const password = document.getElementById('password');
-    if (!password || !password.value) {
-        alert('请输入密码');
-        return;
-    }
+    const password = document.getElementById('password').value;
     
     // 使用环境变量中的密码进行验证
     fetch('/_auth', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ password: password.value })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
     })
     .then(response => response.json())
     .then(data => {
@@ -34,34 +33,18 @@ function logout() {
     window.location.href = '/login.html';
 }
 
-// 检查登录状态
-function checkAuth() {
-    const auth = localStorage.getItem('auth');
-    const currentPath = window.location.pathname;
-    const isLoginPage = currentPath === '/login.html';
-
-    // 未登录且不在登录页，跳转到登录页
-    if (!auth && !isLoginPage) {
+// 在主页面检查登录状态
+if (window.location.pathname === '/') {
+    if (!isLoggedIn()) {
         window.location.href = '/login.html';
-        return;
-    }
-
-    // 已登录且在登录页，跳转到主页
-    if (auth && isLoginPage) {
-        window.location.href = '/';
-        return;
     }
 }
 
-// 仅在页面完全加载后执行一次验证
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        checkAuth();
-        setupLoginForm();
-    });
-} else {
-    checkAuth();
-    setupLoginForm();
+// 在登录页面检查登录状态
+if (window.location.pathname === '/login.html') {
+    if (isLoggedIn()) {
+        window.location.href = '/';
+    }
 }
 
 // 设置登录表单事件监听
@@ -74,4 +57,13 @@ function setupLoginForm() {
             }
         });
     }
+}
+
+// 仅在页面完全加载后执行一次验证
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        setupLoginForm();
+    });
+} else {
+    setupLoginForm();
 }

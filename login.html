@@ -9,10 +9,10 @@
 <body>
     <div class="login-container">
         <h2>登录</h2>
-        <form id="loginForm" onsubmit="event.preventDefault(); login();">
-            <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password">
-            <button type="submit">登录</button>
-        </form>
+        <div class="login-form">
+            <input type="password" id="password" placeholder="请输入密码">
+            <button onclick="login()">登录</button>
+        </div>
     </div>
     <script src="/scripts/auth.js"></script>
 </body>
