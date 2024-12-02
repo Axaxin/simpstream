@@ -1,32 +1,32 @@
-async function login() {
+function login() {
     const password = document.getElementById('password').value;
-    try {
-        const response = await fetch('/_auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password })
-        });
-        
-        if (response.ok) {
-            location.href = '/';
-        } else {
-            alert('密码错误');
-        }
-    } catch (error) {
-        console.error('Login error:', error);
-        alert('登录失败，请重试');
+    if (password === 'your-password') {  // 替换为你的密码
+        localStorage.setItem('auth', '1');
+        window.location.href = '/';
+    } else {
+        alert('密码错误');
     }
 }
 
-async function logout() {
-    try {
-        await fetch('/_auth/logout', { method: 'POST' });
-        location.href = '/login';
-    } catch (error) {
-        console.error('Logout error:', error);
-        alert('登出失败，请重试');
+function logout() {
+    localStorage.removeItem('auth');
+    window.location.href = '/login.html';
+}
+
+// 检查登录状态
+function checkAuth() {
+    const isLoggedIn = localStorage.getItem('auth') === '1';
+    const isLoginPage = window.location.pathname.includes('login.html');
+    
+    if (!isLoggedIn && !isLoginPage) {
+        window.location.href = '/login.html';
+    } else if (isLoggedIn && isLoginPage) {
+        window.location.href = '/';
     }
 }
+
+// 在页面加载时检查登录状态
+window.addEventListener('load', checkAuth);
 
 // 添加回车键支持
 document.addEventListener('DOMContentLoaded', function() {

@@ -2,12 +2,9 @@
   "name": "simpstream",
   "version": "1.0.0",
   "description": "吉伊视频 - FLV播放器",
+  "private": true,
   "scripts": {
-    "dev": "wrangler pages dev --compatibility-date=2024-01-01",
-    "deploy": "wrangler pages deploy ."
-  },
-  "dependencies": {
-    "flv.js": "^1.6.2"
+    "deploy": "wrangler pages deploy public"
   },
   "devDependencies": {
     "wrangler": "^3.22.1"
