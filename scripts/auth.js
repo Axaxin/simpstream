@@ -33,7 +33,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('password');
     if (passwordInput) {
         passwordInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') login();
+            if (e.key === 'Enter') {
+                login();
+            }
         });
     }
 });

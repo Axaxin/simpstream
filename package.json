@@ -4,7 +4,7 @@
   "description": "吉伊视频 - FLV播放器",
   "private": true,
   "scripts": {
-    "deploy": "wrangler pages deploy public"
+    "deploy": "wrangler pages deploy ."
   },
   "devDependencies": {
     "wrangler": "^3.22.1"
