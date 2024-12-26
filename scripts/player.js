@@ -10,39 +10,59 @@ function destroyPlayers() {
 async function initPlayer(videoElement, streamUrl) {
     try {
         console.log('初始化播放器...');
-        
-        if (mpegts.getFeatureList().mseLivePlayback) {
-            console.log('当前浏览器支持MSE直播回放');
-        }
 
-        player = mpegts.createPlayer({
-            type: 'flv',  // 或者 'mse'
+        // 移除旧的 video 元素
+        const oldVideo = document.getElementById('videoPlayer');
+        const container = oldVideo.parentElement;
+        oldVideo.remove();
+
+        // 创建新的 video 元素
+        const newVideo = document.createElement('video');
+        newVideo.id = 'videoPlayer';
+        container.appendChild(newVideo);
+
+        const config = {
+            id: 'videoPlayer',
             url: streamUrl,
             isLive: true,
+            width: '100%',
+            height: '100%',
+            autoplay: true,
+            fluid: true,
             cors: true,
-            hasAudio: true,
-            hasVideo: true,
-            enableStashBuffer: false, // 实时性优先
-            liveBufferLatencyChasing: true, // 追赶延迟
-            autoCleanupSourceBuffer: true,
-            stashInitialSize: 128,   // 减小初始缓冲区大小
-            lazyLoad: false,
-            fixAudioTimestampGap: true
-        });
+            enableStallCheck: true,
+            stallTime: 5,
+            loadTimeout: 10,
+            minCachedTime: 0.5,
+            maxCachedTime: 1,
+            flv: {
+                cors: true,
+                hasAudio: true,
+                hasVideo: true,
+                withCredentials: false,
+                enableWorker: true,
+                enableStashBuffer: false,
+                stashInitialSize: 128,
+                lazyLoadMaxDuration: 3 * 60
+            }
+        };
 
-        player.attachMediaElement(videoElement);
-        player.load();
+        // 创建播放器
+        player = new FlvPlayer(config);
 
         // 监听事件
-        player.on(mpegts.Events.ERROR, (errorType, errorDetail) => {
-            console.error('播放器错误:', errorType, errorDetail);
+        player.on('error', (err) => {
+            console.error('播放器错误:', err);
         });
 
-        player.on(mpegts.Events.STATISTICS_INFO, (stats) => {
-            console.log('播放器统计:', stats);
+        player.on('ready', () => {
+            console.log('播放器就绪');
         });
 
-        await player.play();
+        player.on('complete', () => {
+            console.log('播放完成');
+        });
+
         console.log('播放器初始化完成');
     } catch (error) {
         console.error('播放器初始化失败:', error);
@@ -54,7 +74,6 @@ async function play() {
     console.log('开始播放流程');
     destroyPlayers();
 
-    const videoElement = document.getElementById('videoPlayer');
     const streamUrl = document.getElementById('streamUrl').value;
 
     if (!streamUrl) {
@@ -63,14 +82,7 @@ async function play() {
     }
 
     try {
-        await initPlayer(videoElement, streamUrl);
-        try {
-            console.log('尝试自动播放...');
-            await videoElement.play();
-            console.log('自动播放成功');
-        } catch (playError) {
-            console.warn('自动播放失败，可能需要用户交互:', playError);
-        }
+        await initPlayer(document.getElementById('videoPlayer'), streamUrl);
     } catch (error) {
         console.error('播放失败:', error);
     }
@@ -92,21 +104,7 @@ async function loadDefaultStreamUrl() {
     }
 }
 
-// 检查浏览器兼容性
-function checkCompatibility() {
-    if (!mpegts.isSupported()) {
-        console.error('当前浏览器不支持mpegts.js');
-        alert('您的浏览器不支持当前播放器，请使用最新版本的Chrome、Firefox或Safari浏览器。');
-        return false;
-    }
-    return true;
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    if (checkCompatibility()) {
-        loadDefaultStreamUrl();
-    }
-});
+document.addEventListener('DOMContentLoaded', loadDefaultStreamUrl);
 
 // 页面卸载时清理播放器
 window.addEventListener('beforeunload', function() {
