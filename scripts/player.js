@@ -2,7 +2,7 @@ let flvPlayer = null;
 
 // 检测是否为iOS设备
 function isIOS() {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    return /iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 }
 
 // 从环境变量获取默认播放地址
