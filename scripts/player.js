@@ -44,7 +44,7 @@ function play() {
             hotKey: false,
             loadingText: '加载中...',
             background: '#000000',
-            decoder: '/decoder.js'
+            decoder: '/scripts/decoder.js'
         });
 
         jessibucaPlayer.play(streamUrl);
