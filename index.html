@@ -6,10 +6,11 @@
     <title>吉伊视频</title>
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
     <link rel="stylesheet" href="/styles/main.css">
-    <link href="https://vjs.zencdn.net/8.5.2/video-js.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js" type="text/javascript"></script>
-    <script src="https://vjs.zencdn.net/8.5.2/video.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/videojs-flvjs-es6@1.0.1/dist/videojs-flvjs.min.js"></script>
+    <!-- 非iOS设备使用flv.js -->
+    <script src="https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js"></script>
+    <!-- iOS设备使用xgplayer -->
+    <script src="https://cdn.jsdelivr.net/npm/xgplayer@3.0.11/dist/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xgplayer/streaming-media@3.0.11/dist/index.min.js"></script>
     <style>
         .video-container {
             width: 100%;
@@ -17,31 +18,21 @@
             margin: 0 auto;
             aspect-ratio: 16/9;
         }
-        .video-js {
-            width: 100% !important;
-            height: 100% !important;
+        video {
+            width: 100%;
+            height: 100%;
         }
     </style>
-    <script>
-        // 检查 flv.js 是否加载成功
-        window.addEventListener('load', function() {
-            if (window.flvjs) {
-                console.log('flv.js loaded successfully');
-            } else {
-                console.error('flv.js failed to load');
-            }
-        });
-    </script>
 </head>
 <body>
     <button class="logout" onclick="logout()">退出登录</button>
     <div class="container">
         <h1>吉伊视频</h1>
         <div class="video-container">
-            <video id="videoPlayer" class="video-js vjs-default-skin" controls playsinline webkit-playsinline></video>
+            <video id="videoPlayer" controls playsinline webkit-playsinline></video>
         </div>
         <div class="controls">
-            <input type="text" id="streamUrl" placeholder="输入播放地址 (flv/rtmp/m3u8)">
+            <input type="text" id="streamUrl" placeholder="输入播放地址 (flv)">
             <button onclick="play()">播放</button>
         </div>
     </div>
