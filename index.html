@@ -8,10 +8,6 @@
     <link rel="stylesheet" href="/styles/main.css">
     <!-- 非iOS设备使用flv.js -->
     <script src="https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js"></script>
-    <!-- iOS设备使用xgplayer -->
-    <script src="https://cdn.jsdelivr.net/npm/xgplayer@3.0.11/dist/index.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@xgplayer/flv@3.0.11/dist/index.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@xgplayer/decoder-flv@3.0.11/dist/index.min.js"></script>
     <style>
         .video-container {
             width: 100%;
@@ -30,10 +26,10 @@
     <div class="container">
         <h1>吉伊视频</h1>
         <div class="video-container">
-            <video id="videoPlayer" controls playsinline webkit-playsinline></video>
+            <video id="videoPlayer" controls playsinline webkit-playsinline x5-playsinline></video>
         </div>
         <div class="controls">
-            <input type="text" id="streamUrl" placeholder="输入播放地址 (flv)">
+            <input type="text" id="streamUrl" placeholder="输入播放地址">
             <button onclick="play()">播放</button>
         </div>
     </div>

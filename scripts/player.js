@@ -1,9 +1,14 @@
 let flvPlayer = null;
-let xgPlayer = null;
 
 // 检测是否为iOS设备
 function isIOS() {
     return /iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+// 将 FLV 地址转换为 HLS 地址
+function convertToHLSUrl(url) {
+    // 将 hdl/live/xxx.flv 转换为 hls/live/xxx.m3u8
+    return url.replace('/hdl/', '/hls/').replace('.flv', '.m3u8');
 }
 
 function destroyPlayers() {
@@ -11,57 +16,43 @@ function destroyPlayers() {
         flvPlayer.destroy();
         flvPlayer = null;
     }
-    if (xgPlayer) {
-        xgPlayer.destroy();
-        xgPlayer = null;
-    }
 }
 
 async function initPlayer(streamUrl) {
     try {
         console.log('初始化播放器...');
-        console.log('流地址:', streamUrl);
+        console.log('原始流地址:', streamUrl);
         console.log('是否为iOS设备:', isIOS());
 
         destroyPlayers();
         
         if (isIOS()) {
-            console.log('使用xgplayer播放器');
+            console.log('使用原生播放器(HLS)');
+            const videoElement = document.getElementById('videoPlayer');
+            const hlsUrl = convertToHLSUrl(streamUrl);
+            console.log('HLS流地址:', hlsUrl);
             
-            // 创建xgplayer实例
-            xgPlayer = new Player({
-                id: 'videoPlayer',
-                url: streamUrl,
-                playsinline: true,
-                fluid: true,
-                height: '100%',
-                width: '100%',
-                autoplay: true,
-                isLive: true,
-                cors: true,
-                plugins: [FlvPlugin],
-                flv: {
-                    cors: true,
-                    enableStashBuffer: false,  // 禁用额外缓冲，降低延迟
-                    lazyLoadMaxDuration: 0,    // 禁用延迟加载
-                    seekType: 'range',         // 使用 range 请求
-                    hasAudio: true,
-                    hasVideo: true
-                },
-                decoder: {
-                    plugin: window.xgplayerDecoderFlv,  // 使用 WASM 解码器
-                    config: {
-                        wasmURI: 'https://cdn.jsdelivr.net/npm/@xgplayer/decoder-flv@3.0.11/dist/flvWasm.wasm',
-                        enableSIMD: true
-                    }
-                }
-            });
-
+            // 设置视频源
+            videoElement.src = hlsUrl;
+            
+            // 设置必要的属性
+            videoElement.setAttribute('playsinline', '');  // 防止全屏
+            videoElement.setAttribute('webkit-playsinline', '');  // iOS Safari
+            videoElement.setAttribute('x5-playsinline', '');  // 微信浏览器
+            
             // 错误处理
-            xgPlayer.on('error', (err) => {
-                console.error('xgplayer错误:', err);
+            videoElement.onerror = function(e) {
+                console.error('视频播放错误:', e);
                 alert('播放出错，请刷新页面重试');
-            });
+            };
+            
+            // 尝试播放
+            try {
+                await videoElement.play();
+            } catch (e) {
+                console.error('自动播放失败:', e);
+                // iOS可能需要用户手动点击播放
+            }
 
         } else if (window.flvjs && window.flvjs.isSupported()) {
             console.log('使用flv.js播放器');
