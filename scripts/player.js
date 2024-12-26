@@ -1,5 +1,5 @@
 let flvPlayer = null;
-let jessibucaPlayer = null;
+let peerConnection = null;
 
 // 检测是否为iOS设备
 function isIOS() {
@@ -11,13 +11,47 @@ function destroyPlayers() {
         flvPlayer.destroy();
         flvPlayer = null;
     }
-    if (jessibucaPlayer) {
-        jessibucaPlayer.destroy();
-        jessibucaPlayer = null;
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
     }
 }
 
-function play() {
+async function initWebRTC(videoElement, streamUrl) {
+    try {
+        // 将FLV URL转换为WebRTC URL
+        // 例如: https://winlive.metacorn.cc/hdl/live/win.flv -> webrtc://winlive.metacorn.cc/webrtc/play/live/win
+        const webrtcUrl = streamUrl
+            .replace(/^https?:\/\//, 'webrtc://')  // 替换协议
+            .replace('/hdl/', '/webrtc/play/')     // 替换路径
+            .replace('.flv', '');                  // 移除扩展名
+
+        // 创建新的RTCPeerConnection
+        peerConnection = new RTCPeerConnection();
+
+        // 处理远程流
+        peerConnection.ontrack = (event) => {
+            if (event.streams && event.streams[0]) {
+                videoElement.srcObject = event.streams[0];
+            }
+        };
+
+        // 连接WebRTC
+        const response = await fetch(webrtcUrl.replace('webrtc://', 'https://'));
+        const offer = await response.json();
+        
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        console.log('WebRTC连接已建立');
+    } catch (error) {
+        console.error('WebRTC初始化失败:', error);
+        throw error;
+    }
+}
+
+async function play() {
     destroyPlayers();
 
     const videoElement = document.getElementById('videoPlayer');
@@ -27,56 +61,14 @@ function play() {
         return;
     }
 
-    // iPhone设备使用Jessibuca播放器
+    // iPhone设备使用WebRTC
     if (isIOS()) {
-        console.log('iOS设备检测到，初始化Jessibuca播放器');
-        
-        // 保存video元素的父容器
-        const container = videoElement.parentElement;
-        // 移除原有的video元素
-        videoElement.remove();
-        
-        // 创建新的播放器容器
-        const playerContainer = document.createElement('div');
-        playerContainer.id = 'jessibucaPlayer';
-        playerContainer.style.width = '100%';
-        playerContainer.style.height = '400px'; // 设置固定高度
-        container.appendChild(playerContainer);
-
         try {
-            console.log('创建Jessibuca实例');
-            jessibucaPlayer = new window.Jessibuca({
-                container: playerContainer,
-                videoBuffer: 0.2,
-                isResize: true,
-                debug: true, // 开启调试模式
-                hotKey: false,
-                loadingText: '加载中...',
-                background: '#000000',
-                decoder: '/scripts/decoder.js'
-            });
-
-            // 添加事件监听
-            jessibucaPlayer.on('error', (error) => {
-                console.error('Jessibuca播放器错误:', error);
-            });
-
-            jessibucaPlayer.on('load', () => {
-                console.log('Jessibuca解码器加载成功');
-            });
-
-            jessibucaPlayer.on('play', () => {
-                console.log('Jessibuca开始播放');
-            });
-
-            console.log('开始播放流:', streamUrl);
-            jessibucaPlayer.play(streamUrl);
+            await initWebRTC(videoElement, streamUrl);
+            return;
         } catch (error) {
-            console.error('Jessibuca初始化失败:', error);
-            // 发生错误时恢复video元素
-            container.appendChild(videoElement);
+            console.error('WebRTC播放失败:', error);
         }
-        return;
     }
 
     // 其他设备使用flv.js
