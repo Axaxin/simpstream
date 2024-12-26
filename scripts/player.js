@@ -22,15 +22,13 @@ async function initPlayer(streamUrl) {
             playsinline: true,
             volume: 0.8,
             plugins: [{
-                plugin: FlvPlugin,
+                plugin: window.xgplayerPluginFlv,
                 options: {
-                    mediaDataSource: {
-                        type: 'flv',
-                        cors: true,
-                        hasAudio: true,
-                        hasVideo: true,
-                        isLive: true
-                    }
+                    cors: true,
+                    hasAudio: true,
+                    hasVideo: true,
+                    isLive: true,
+                    withCredentials: false
                 }
             }]
         });
