@@ -6,13 +6,13 @@
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
     <link rel="stylesheet" href="/styles/main.css">
     <script src="https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jessibuca@2.3.0/dist/jessibuca.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dplayer@1.27.1/dist/DPlayer.min.js"></script>
 </head>
 <body>
     <button class="logout" onclick="logout()">退出登录</button>
     <div class="container">
         <h1>吉伊视频</h1>
-        <video id="videoPlayer" controls></video>
+        <div id="videoPlayer"></div>
         <div class="controls">
             <input type="text" id="streamUrl" placeholder="输入播放地址 (flv/rtmp/m3u8)">
             <button onclick="play()">播放</button>
