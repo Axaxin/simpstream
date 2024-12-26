@@ -34,9 +34,8 @@ function play() {
 
     // iOS设备使用原生HLS播放器
     if (isIOS()) {
-        // 假设服务器支持将相同的流同时输出为HLS格式
-        // 将flv地址转换为hls地址
-        const hlsUrl = streamUrl.replace('.flv', '.m3u8');
+        // 将hdl路径替换为hls，并将.flv替换为.m3u8
+        const hlsUrl = streamUrl.replace('/hdl/', '/hls/').replace('.flv', '.m3u8');
         videoElement.src = hlsUrl;
         videoElement.play();
         return;
