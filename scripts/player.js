@@ -5,10 +5,10 @@ function isIOS() {
     return /iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 }
 
-// 将 FLV 地址转换为 HLS 地址
-function convertToHLSUrl(url) {
-    // 将 hdl/live/xxx.flv 转换为 hls/live/xxx.m3u8
-    return url.replace('/hdl/', '/hls/').replace('.flv', '.m3u8');
+// 将 FLV 地址转换为 MP4 地址
+function convertToMP4Url(url) {
+    // 将 hdl/live/xxx.flv 转换为 mp4/live/xxx.mp4
+    return url.replace('/hdl/', '/fmp4/').replace('.flv', '.mp4');
 }
 
 function destroyPlayers() {
@@ -27,13 +27,13 @@ async function initPlayer(streamUrl) {
         destroyPlayers();
         
         if (isIOS()) {
-            console.log('使用原生播放器(HLS)');
+            console.log('使用原生播放器(MP4)');
             const videoElement = document.getElementById('videoPlayer');
-            const hlsUrl = convertToHLSUrl(streamUrl);
-            console.log('HLS流地址:', hlsUrl);
+            const mp4Url = convertToMP4Url(streamUrl);
+            console.log('MP4流地址:', mp4Url);
             
             // 设置视频源
-            videoElement.src = hlsUrl;
+            videoElement.src = mp4Url;
             
             // 设置必要的属性
             videoElement.setAttribute('playsinline', '');  // 防止全屏
