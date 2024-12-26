@@ -1,9 +1,19 @@
 let flvPlayer = null;
+let vjsPlayer = null;
+
+// 检测是否为iOS设备
+function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
 
 function destroyPlayers() {
     if (flvPlayer) {
         flvPlayer.destroy();
         flvPlayer = null;
+    }
+    if (vjsPlayer) {
+        vjsPlayer.dispose();
+        vjsPlayer = null;
     }
 }
 
@@ -13,11 +23,31 @@ async function initPlayer(streamUrl) {
         console.log('流地址:', streamUrl);
 
         destroyPlayers();
-
         const videoElement = document.getElementById('videoPlayer');
-        videoElement.volume = 0.8;
+        
+        if (isIOS()) {
+            console.log('检测到iOS设备，使用Video.js播放器');
+            vjsPlayer = videojs('videoPlayer', {
+                techOrder: ['html5', 'flvjs'],
+                flvjs: {
+                    mediaDataSource: {
+                        isLive: true,
+                        cors: true,
+                        withCredentials: false,
+                    },
+                },
+            });
 
-        if (window.flvjs && window.flvjs.isSupported()) {
+            vjsPlayer.src({
+                src: streamUrl,
+                type: 'video/x-flv'
+            });
+
+            vjsPlayer.play().catch(e => {
+                console.error('自动播放失败:', e);
+            });
+        } else if (window.flvjs && window.flvjs.isSupported()) {
+            console.log('使用原生flv.js播放器');
             flvPlayer = window.flvjs.createPlayer({
                 type: 'flv',
                 url: streamUrl,
@@ -33,11 +63,11 @@ async function initPlayer(streamUrl) {
             videoElement.play().catch(e => {
                 console.error('自动播放失败:', e);
             });
-
-            console.log('播放器初始化完成');
         } else {
             console.error('当前浏览器不支持 FLV 播放');
         }
+
+        console.log('播放器初始化完成');
     } catch (error) {
         console.error('播放器初始化失败:', error);
         throw error;
