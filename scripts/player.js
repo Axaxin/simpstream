@@ -1,79 +1,51 @@
-let peerConnection = null;
+let player = null;
 
 function destroyPlayers() {
-    if (peerConnection) {
-        console.log('清理之前的连接');
-        peerConnection.close();
-        peerConnection = null;
+    if (player) {
+        player.destroy();
+        player = null;
     }
 }
 
-async function initWebRTC(videoElement, streamUrl) {
+async function initPlayer(videoElement, streamUrl) {
     try {
-        console.log('原始URL:', streamUrl);
-
-        // 解析WebRTC URL获取streamPath
-        const url = new URL(streamUrl);
-        const streamPath = url.pathname.split('/').slice(3).join('/');
-        console.log('Stream Path:', streamPath);
-
-        // 构建API URL (使用https)
-        const apiUrl = `https://${url.host}/webrtc/play/${streamPath}`;
-        console.log('API URL:', apiUrl);
-
-        // 创建新的RTCPeerConnection
-        peerConnection = new RTCPeerConnection();
-        console.log('RTCPeerConnection已创建');
-
-        // 监听ICE候选者
-        peerConnection.onicecandidate = (event) => {
-            if (event.candidate) {
-                console.log('发现新的ICE候选者:', event.candidate);
-            }
-        };
-
-        // 监听连接状态
-        peerConnection.onconnectionstatechange = () => {
-            console.log('连接状态:', peerConnection.connectionState);
-        };
-
-        // 处理远程流
-        peerConnection.ontrack = (event) => {
-            console.log('收到媒体流');
-            if (event.streams && event.streams[0]) {
-                videoElement.srcObject = event.streams[0];
-            }
-        };
-
-        // 发送SDP请求
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/sdp'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`服务器响应错误: ${response.status}`);
+        console.log('初始化播放器...');
+        
+        if (mpegts.getFeatureList().mseLivePlayback) {
+            console.log('当前浏览器支持MSE直播回放');
         }
 
-        // 获取服务器返回的SDP
-        const sdp = await response.text();
-        console.log('收到服务器SDP');
+        player = mpegts.createPlayer({
+            type: 'flv',  // 或者 'mse'
+            url: streamUrl,
+            isLive: true,
+            cors: true,
+            hasAudio: true,
+            hasVideo: true,
+            enableStashBuffer: false, // 实时性优先
+            liveBufferLatencyChasing: true, // 追赶延迟
+            autoCleanupSourceBuffer: true,
+            stashInitialSize: 128,   // 减小初始缓冲区大小
+            lazyLoad: false,
+            fixAudioTimestampGap: true
+        });
 
-        // 设置远程描述
-        await peerConnection.setRemoteDescription(new RTCSessionDescription({
-            type: 'offer',
-            sdp: sdp
-        }));
+        player.attachMediaElement(videoElement);
+        player.load();
 
-        // 创建应答
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
+        // 监听事件
+        player.on(mpegts.Events.ERROR, (errorType, errorDetail) => {
+            console.error('播放器错误:', errorType, errorDetail);
+        });
 
-        console.log('WebRTC连接已建立');
+        player.on(mpegts.Events.STATISTICS_INFO, (stats) => {
+            console.log('播放器统计:', stats);
+        });
+
+        await player.play();
+        console.log('播放器初始化完成');
     } catch (error) {
-        console.error('WebRTC初始化失败:', error);
+        console.error('播放器初始化失败:', error);
         throw error;
     }
 }
@@ -90,9 +62,8 @@ async function play() {
         return;
     }
 
-    console.log('准备初始化WebRTC...');
     try {
-        await initWebRTC(videoElement, streamUrl);
+        await initPlayer(videoElement, streamUrl);
         try {
             console.log('尝试自动播放...');
             await videoElement.play();
@@ -112,13 +83,8 @@ async function loadDefaultStreamUrl() {
         const response = await fetch('/_stream');
         const data = await response.json();
         if (data.url) {
-            // 将 http URL 转换为 webrtc URL
-            const webrtcUrl = data.url
-                .replace(/^https?:\/\//, 'webrtc://')
-                .replace('/hdl/', '/webrtc/play/')
-                .replace('.flv', '');
-            console.log('WebRTC URL:', webrtcUrl);
-            document.getElementById('streamUrl').value = webrtcUrl;
+            console.log('获取到默认流地址:', data.url);
+            document.getElementById('streamUrl').value = data.url;
             play();
         }
     } catch (error) {
@@ -126,7 +92,21 @@ async function loadDefaultStreamUrl() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', loadDefaultStreamUrl);
+// 检查浏览器兼容性
+function checkCompatibility() {
+    if (!mpegts.isSupported()) {
+        console.error('当前浏览器不支持mpegts.js');
+        alert('您的浏览器不支持当前播放器，请使用最新版本的Chrome、Firefox或Safari浏览器。');
+        return false;
+    }
+    return true;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (checkCompatibility()) {
+        loadDefaultStreamUrl();
+    }
+});
 
 // 页面卸载时清理播放器
 window.addEventListener('beforeunload', function() {
