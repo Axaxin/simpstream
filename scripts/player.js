@@ -22,28 +22,69 @@ async function initPlayer(videoElement, streamUrl) {
         playerContainer.id = 'videoPlayer';
         container.appendChild(playerContainer);
 
+        // FLV 配置
+        const flvConfig = {
+            type: 'flv',
+            url: streamUrl,
+            isLive: true,
+            hasAudio: true,
+            hasVideo: true,
+            enableStashBuffer: false,
+            stashInitialSize: 128,
+            cors: true
+        };
+
         // 基础配置
         player = new Player({
             id: 'videoPlayer',
-            url: streamUrl,
             isLive: true,
             fluid: true,
+            autoplay: true,
             playsinline: true,
-            plugins: [Player.FlvPlayer]
+            width: '100%',
+            height: '100%',
+            plugins: [{
+                plugin: Player.FlvPlayer,
+                options: flvConfig
+            }]
         });
 
         // 事件监听
         player.on('error', (err) => {
             console.error('播放器错误:', err);
+            if (err.mediaError) {
+                console.error('媒体错误:', err.mediaError);
+            }
+            if (err.networkError) {
+                console.error('网络错误:', err.networkError);
+            }
         });
 
         player.on('ready', () => {
             console.log('播放器就绪');
-            player.play();
+            try {
+                player.play().catch(e => {
+                    console.error('自动播放失败:', e);
+                });
+            } catch (e) {
+                console.error('播放出错:', e);
+            }
         });
 
         player.on('playing', () => {
             console.log('开始播放');
+        });
+
+        player.on('waiting', () => {
+            console.log('等待数据...');
+        });
+
+        player.on('loadstart', () => {
+            console.log('开始加载数据');
+        });
+
+        player.on('loadeddata', () => {
+            console.log('数据加载完成');
         });
 
         console.log('播放器初始化完成');
