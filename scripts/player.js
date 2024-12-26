@@ -39,11 +39,21 @@ async function initPlayer(streamUrl) {
                 autoplay: true,
                 isLive: true,
                 cors: true,
-                enableContextmenu: false,
-                plugins: [StreamingMedia],
-                streamingMedia: {
-                    protocol: 'flv',
-                    decoder: 'wasm',
+                plugins: [FlvPlugin],
+                flv: {
+                    cors: true,
+                    enableStashBuffer: false,  // 禁用额外缓冲，降低延迟
+                    lazyLoadMaxDuration: 0,    // 禁用延迟加载
+                    seekType: 'range',         // 使用 range 请求
+                    hasAudio: true,
+                    hasVideo: true
+                },
+                decoder: {
+                    plugin: window.xgplayerDecoderFlv,  // 使用 WASM 解码器
+                    config: {
+                        wasmURI: 'https://cdn.jsdelivr.net/npm/@xgplayer/decoder-flv@3.0.11/dist/flvWasm.wasm',
+                        enableSIMD: true
+                    }
                 }
             });
 
