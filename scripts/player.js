@@ -1,9 +1,9 @@
-let player = null;
+let flvPlayer = null;
 
 function destroyPlayers() {
-    if (player) {
-        player.destroy();
-        player = null;
+    if (flvPlayer) {
+        flvPlayer.destroy();
+        flvPlayer = null;
     }
 }
 
@@ -14,44 +14,30 @@ async function initPlayer(streamUrl) {
 
         destroyPlayers();
 
-        player = new Player({
-            id: 'videoPlayer',
-            url: streamUrl,
-            isLive: true,
-            fluid: true,
-            playsinline: true,
-            volume: 0.8,
-            plugins: [{
-                plugin: window.xgplayerPluginFlv,
-                options: {
-                    cors: true,
-                    hasAudio: true,
-                    hasVideo: true,
-                    isLive: true,
-                    withCredentials: false
-                }
-            }]
-        });
+        const videoElement = document.getElementById('videoPlayer');
+        videoElement.volume = 0.8;
 
-        // 事件监听
-        player.on('error', (err) => {
-            console.error('播放器错误:', err);
-        });
+        if (flv.isSupported()) {
+            flvPlayer = flv.createPlayer({
+                type: 'flv',
+                url: streamUrl,
+                isLive: true,
+                hasAudio: true,
+                hasVideo: true,
+                cors: true
+            });
 
-        player.on('ready', () => {
-            console.log('播放器就绪');
-            player.play();
-        });
+            flvPlayer.attachMediaElement(videoElement);
+            flvPlayer.load();
 
-        player.on('playing', () => {
-            console.log('开始播放');
-        });
+            videoElement.play().catch(e => {
+                console.error('自动播放失败:', e);
+            });
 
-        player.on('waiting', () => {
-            console.log('等待数据...');
-        });
-
-        console.log('播放器初始化完成');
+            console.log('播放器初始化完成');
+        } else {
+            console.error('当前浏览器不支持 FLV 播放');
+        }
     } catch (error) {
         console.error('播放器初始化失败:', error);
         throw error;

@@ -5,20 +5,13 @@
     <title>吉伊视频</title>
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
     <link rel="stylesheet" href="/styles/main.css">
-    <script src="https://cdn.jsdelivr.net/npm/xgplayer@3.0.11/dist/index.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xgplayer-flv@3.0.11/dist/index.min.js"></script>
-    <script>
-        if (window.xgplayer) {
-            console.log('xgplayer loaded');
-            console.log('plugins:', window.xgplayerPluginFlv);
-        }
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js"></script>
 </head>
 <body>
     <button class="logout" onclick="logout()">退出登录</button>
     <div class="container">
         <h1>吉伊视频</h1>
-        <div id="videoPlayer"></div>
+        <video id="videoPlayer" controls></video>
         <div class="controls">
             <input type="text" id="streamUrl" placeholder="输入播放地址 (flv/rtmp/m3u8)">
             <button onclick="play()">播放</button>
