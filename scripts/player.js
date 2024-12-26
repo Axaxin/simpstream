@@ -14,25 +14,25 @@ async function initPlayer(streamUrl) {
 
         destroyPlayers();
 
-        // 使用 xgplayer-flv.js
-        player = new FlvJsPlayer({
+        player = new Player({
             id: 'videoPlayer',
             url: streamUrl,
             isLive: true,
+            fluid: true,
             playsinline: true,
-            height: '100%',
-            width: '100%',
             volume: 0.8,
-            cors: true,
-            enableStashBuffer: false,
-            stashInitialSize: 128,
-            autoCleanupSourceBuffer: true,
-            flvOptions: {
-                enableWorker: true,
-                hasAudio: true,
-                hasVideo: true,
-                isLive: true
-            }
+            plugins: [{
+                plugin: FlvPlugin,
+                options: {
+                    mediaDataSource: {
+                        type: 'flv',
+                        cors: true,
+                        hasAudio: true,
+                        hasVideo: true,
+                        isLive: true
+                    }
+                }
+            }]
         });
 
         // 事件监听
