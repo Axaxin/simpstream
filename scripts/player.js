@@ -23,61 +23,41 @@ async function initPlayer(videoElement, streamUrl) {
         container.appendChild(playerContainer);
 
         // 创建播放器实例
-        player = new Player({
+        const config = {
             id: 'videoPlayer',
-            url: streamUrl,  // 直接设置url
             isLive: true,
-            autoplay: false, // 禁用自动播放，改为手动控制
             fluid: true,
             width: '100%',
             height: '100%',
+            autoplay: true,
             volume: 1,
-            plugins: [{
-                plugin: Player.FlvPlayer,
-                options: {
-                    type: 'flv',  // 指定类型
-                    cors: true,   // 允许跨域
+            flv: {
+                mediaDataSource: {
+                    type: 'flv',
+                    url: streamUrl,
+                    isLive: true,
                     hasAudio: true,
                     hasVideo: true,
+                    cors: true
+                },
+                config: {
                     enableWorker: true,
-                    isLive: true,
-                    lazyLoad: false,
                     enableStashBuffer: false,
-                    stashInitialSize: 128
+                    stashInitialSize: 128,
+                    autoCleanupSourceBuffer: true
                 }
-            }]
-        });
+            }
+        };
+
+        player = new FlvJsPlayer(config);
 
         // 事件监听
         player.on('error', (err) => {
             console.error('播放器错误:', err);
-            // 尝试重新加载
-            setTimeout(() => {
-                console.log('尝试重新加载...');
-                player.reload();
-            }, 1000);
         });
 
         player.on('ready', () => {
             console.log('播放器就绪');
-            // 添加播放按钮
-            const playButton = document.createElement('button');
-            playButton.textContent = '点击播放';
-            playButton.style.position = 'absolute';
-            playButton.style.top = '50%';
-            playButton.style.left = '50%';
-            playButton.style.transform = 'translate(-50%, -50%)';
-            playButton.style.zIndex = '1000';
-            playerContainer.appendChild(playButton);
-
-            playButton.onclick = async () => {
-                try {
-                    await player.play();
-                    playButton.remove();
-                } catch (e) {
-                    console.error('播放失败:', e);
-                }
-            };
         });
 
         player.on('playing', () => {
