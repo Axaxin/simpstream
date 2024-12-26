@@ -3,7 +3,7 @@ let vjsPlayer = null;
 
 // 检测是否为iOS设备
 function isIOS() {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    return /iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 }
 
 function destroyPlayers() {
@@ -21,14 +21,23 @@ async function initPlayer(streamUrl) {
     try {
         console.log('初始化播放器...');
         console.log('流地址:', streamUrl);
+        console.log('是否为iOS设备:', isIOS());
 
         destroyPlayers();
-        const videoElement = document.getElementById('videoPlayer');
         
         if (isIOS()) {
             console.log('检测到iOS设备，使用Video.js播放器');
             vjsPlayer = videojs('videoPlayer', {
                 techOrder: ['html5', 'flvjs'],
+                sources: [{
+                    src: streamUrl,
+                    type: 'video/x-flv'
+                }],
+                autoplay: true,
+                controls: true,
+                fluid: true,
+                aspectRatio: '16:9',
+                playsinline: true,
                 flvjs: {
                     mediaDataSource: {
                         isLive: true,
@@ -38,16 +47,15 @@ async function initPlayer(streamUrl) {
                 },
             });
 
-            vjsPlayer.src({
-                src: streamUrl,
-                type: 'video/x-flv'
+            // 监听错误事件
+            vjsPlayer.on('error', function() {
+                console.error('Video.js播放错误:', vjsPlayer.error());
             });
 
-            vjsPlayer.play().catch(e => {
-                console.error('自动播放失败:', e);
-            });
         } else if (window.flvjs && window.flvjs.isSupported()) {
             console.log('使用原生flv.js播放器');
+            const videoElement = document.getElementById('videoPlayer');
+            
             flvPlayer = window.flvjs.createPlayer({
                 type: 'flv',
                 url: streamUrl,
@@ -60,16 +68,23 @@ async function initPlayer(streamUrl) {
             flvPlayer.attachMediaElement(videoElement);
             flvPlayer.load();
 
+            // 监听错误事件
+            flvPlayer.on(window.flvjs.Events.ERROR, (errorType, errorDetail) => {
+                console.error('FLV.js播放错误:', errorType, errorDetail);
+            });
+
             videoElement.play().catch(e => {
                 console.error('自动播放失败:', e);
             });
         } else {
             console.error('当前浏览器不支持 FLV 播放');
+            alert('当前浏览器不支持 FLV 播放，请尝试使用其他浏览器');
         }
 
         console.log('播放器初始化完成');
     } catch (error) {
         console.error('播放器初始化失败:', error);
+        alert('播放器初始化失败，请刷新页面重试');
         throw error;
     }
 }
