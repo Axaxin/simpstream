@@ -10,79 +10,40 @@ function destroyPlayers() {
 async function initPlayer(videoElement, streamUrl) {
     try {
         console.log('初始化播放器...');
+        console.log('流地址:', streamUrl);
 
         // 移除旧的 video 元素
         const oldVideo = document.getElementById('videoPlayer');
         const container = oldVideo.parentElement;
         oldVideo.remove();
 
-        // 创建新的 div 元素作为播放器容器
+        // 创建新的 div 元素
         const playerContainer = document.createElement('div');
         playerContainer.id = 'videoPlayer';
         container.appendChild(playerContainer);
 
-        const config = {
+        // 基础配置
+        player = new Player({
             id: 'videoPlayer',
             url: streamUrl,
             isLive: true,
-            width: '100%',
-            height: '100%',
-            autoplay: true,
             fluid: true,
-            cors: true,
-            enableStallCheck: true,
-            stallTime: 5,
-            loadTimeout: 10,
-            minCachedTime: 0.5,
-            maxCachedTime: 1,
-            flv: {
-                cors: true,
-                hasAudio: true,
-                hasVideo: true,
-                withCredentials: false,
-                enableWorker: true,
-                enableStashBuffer: false,
-                stashInitialSize: 128,
-                lazyLoadMaxDuration: 3 * 60,
-                type: 'flv'  // 明确指定类型
-            }
-        };
-
-        // 正确创建播放器
-        player = new Player({
-            ...config,
+            playsinline: true,
             plugins: [Player.FlvPlayer]
         });
 
-        // 监听事件
+        // 事件监听
         player.on('error', (err) => {
             console.error('播放器错误:', err);
         });
 
         player.on('ready', () => {
             console.log('播放器就绪');
-            player.play(); // 确保播放开始
-        });
-
-        player.on('complete', () => {
-            console.log('播放完成');
-        });
-
-        // 添加更多事件监听以便调试
-        player.on('waiting', () => {
-            console.log('等待数据...');
+            player.play();
         });
 
         player.on('playing', () => {
             console.log('开始播放');
-        });
-
-        player.on('pause', () => {
-            console.log('播放暂停');
-        });
-
-        player.on('ended', () => {
-            console.log('播放结束');
         });
 
         console.log('播放器初始化完成');
@@ -97,7 +58,6 @@ async function play() {
     destroyPlayers();
 
     const streamUrl = document.getElementById('streamUrl').value;
-
     if (!streamUrl) {
         console.warn('未提供流地址');
         return;
@@ -110,7 +70,6 @@ async function play() {
     }
 }
 
-// 页面加载完成后获取默认播放地址
 async function loadDefaultStreamUrl() {
     console.log('加载默认流地址');
     try {
@@ -128,7 +87,6 @@ async function loadDefaultStreamUrl() {
 
 document.addEventListener('DOMContentLoaded', loadDefaultStreamUrl);
 
-// 页面卸载时清理播放器
 window.addEventListener('beforeunload', function() {
     destroyPlayers();
 });
