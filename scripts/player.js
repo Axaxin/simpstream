@@ -1,5 +1,10 @@
 let flvPlayer = null;
 
+// 检测是否为iOS设备
+function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
 // 从环境变量获取默认播放地址
 async function loadDefaultStreamUrl() {
     try {
@@ -17,6 +22,7 @@ async function loadDefaultStreamUrl() {
 function play() {
     if (flvPlayer) {
         flvPlayer.destroy();
+        flvPlayer = null;
     }
 
     const videoElement = document.getElementById('videoPlayer');
@@ -26,6 +32,17 @@ function play() {
         return;
     }
 
+    // iOS设备使用原生HLS播放器
+    if (isIOS()) {
+        // 假设服务器支持将相同的流同时输出为HLS格式
+        // 将flv地址转换为hls地址
+        const hlsUrl = streamUrl.replace('.flv', '.m3u8');
+        videoElement.src = hlsUrl;
+        videoElement.play();
+        return;
+    }
+
+    // 其他设备使用flv.js
     flvPlayer = flvjs.createPlayer({
         type: 'flv',
         url: streamUrl
