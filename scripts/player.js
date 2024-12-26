@@ -1,10 +1,5 @@
 let peerConnection = null;
 
-// 检测是否为iOS设备
-function isIOS() {
-    return /iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-}
-
 function destroyPlayers() {
     if (peerConnection) {
         console.log('清理之前的连接');
@@ -16,60 +11,64 @@ function destroyPlayers() {
 async function initWebRTC(videoElement, streamUrl) {
     try {
         console.log('原始URL:', streamUrl);
-        
-        // 将FLV URL转换为WebRTC URL
-        const webrtcUrl = streamUrl
-            .replace(/^https?:\/\//, 'webrtc://')
-            .replace('/hdl/', '/webrtc/play/')
-            .replace('.flv', '');
 
-        console.log('转换后的WebRTC URL:', webrtcUrl);
-        console.log('实际请求的HTTP URL:', webrtcUrl.replace('webrtc://', 'https://'));
+        // 解析WebRTC URL获取streamPath
+        const url = new URL(streamUrl);
+        const streamPath = url.pathname.split('/').slice(3).join('/');
+        console.log('Stream Path:', streamPath);
+
+        // 构建API URL (使用https)
+        const apiUrl = `https://${url.host}/webrtc/play/${streamPath}`;
+        console.log('API URL:', apiUrl);
 
         // 创建新的RTCPeerConnection
         peerConnection = new RTCPeerConnection();
         console.log('RTCPeerConnection已创建');
 
-        // 监听连接状态变化
-        peerConnection.onconnectionstatechange = (event) => {
-            console.log('连接状态变化:', peerConnection.connectionState);
+        // 监听ICE候选者
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                console.log('发现新的ICE候选者:', event.candidate);
+            }
         };
 
-        // 监听ICE连接状态
-        peerConnection.oniceconnectionstatechange = (event) => {
-            console.log('ICE连接状态:', peerConnection.iceConnectionState);
-        };
-
-        // 监听信令状态
-        peerConnection.onsignalingstatechange = (event) => {
-            console.log('信令状态:', peerConnection.signalingState);
+        // 监听连接状态
+        peerConnection.onconnectionstatechange = () => {
+            console.log('连接状态:', peerConnection.connectionState);
         };
 
         // 处理远程流
         peerConnection.ontrack = (event) => {
-            console.log('收到媒体流轨道');
+            console.log('收到媒体流');
             if (event.streams && event.streams[0]) {
-                console.log('设置视频源');
                 videoElement.srcObject = event.streams[0];
             }
         };
 
-        // 连接WebRTC
-        console.log('开始获取WebRTC offer...');
-        const response = await fetch(webrtcUrl.replace('webrtc://', 'https://'));
+        // 发送SDP请求
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/sdp'
+            }
+        });
+
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`服务器响应错误: ${response.status}`);
         }
-        const offer = await response.json();
-        console.log('收到offer:', offer);
-        
-        console.log('设置远程描述...');
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-        
-        console.log('创建answer...');
+
+        // 获取服务器返回的SDP
+        const sdp = await response.text();
+        console.log('收到服务器SDP');
+
+        // 设置远程描述
+        await peerConnection.setRemoteDescription(new RTCSessionDescription({
+            type: 'offer',
+            sdp: sdp
+        }));
+
+        // 创建应答
         const answer = await peerConnection.createAnswer();
-        
-        console.log('设置本地描述...');
         await peerConnection.setLocalDescription(answer);
 
         console.log('WebRTC连接已建立');
@@ -94,7 +93,6 @@ async function play() {
     console.log('准备初始化WebRTC...');
     try {
         await initWebRTC(videoElement, streamUrl);
-        // 自动播放
         try {
             console.log('尝试自动播放...');
             await videoElement.play();
@@ -114,8 +112,13 @@ async function loadDefaultStreamUrl() {
         const response = await fetch('/_stream');
         const data = await response.json();
         if (data.url) {
-            console.log('获取到默认流地址:', data.url);
-            document.getElementById('streamUrl').value = data.url;
+            // 将 http URL 转换为 webrtc URL
+            const webrtcUrl = data.url
+                .replace(/^https?:\/\//, 'webrtc://')
+                .replace('/hdl/', '/webrtc/play/')
+                .replace('.flv', '');
+            console.log('WebRTC URL:', webrtcUrl);
+            document.getElementById('streamUrl').value = webrtcUrl;
             play();
         }
     } catch (error) {
