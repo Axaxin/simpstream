@@ -1,4 +1,3 @@
-let flvPlayer = null;
 let peerConnection = null;
 
 // 检测是否为iOS设备
@@ -7,10 +6,6 @@ function isIOS() {
 }
 
 function destroyPlayers() {
-    if (flvPlayer) {
-        flvPlayer.destroy();
-        flvPlayer = null;
-    }
     if (peerConnection) {
         peerConnection.close();
         peerConnection = null;
@@ -20,11 +15,12 @@ function destroyPlayers() {
 async function initWebRTC(videoElement, streamUrl) {
     try {
         // 将FLV URL转换为WebRTC URL
-        // 例如: https://winlive.metacorn.cc/hdl/live/win.flv -> webrtc://winlive.metacorn.cc/webrtc/play/live/win
         const webrtcUrl = streamUrl
-            .replace(/^https?:\/\//, 'webrtc://')  // 替换协议
-            .replace('/hdl/', '/webrtc/play/')     // 替换路径
-            .replace('.flv', '');                  // 移除扩展名
+            .replace(/^https?:\/\//, 'webrtc://')
+            .replace('/hdl/', '/webrtc/play/')
+            .replace('.flv', '');
+
+        console.log('WebRTC URL:', webrtcUrl);
 
         // 创建新的RTCPeerConnection
         peerConnection = new RTCPeerConnection();
@@ -38,6 +34,9 @@ async function initWebRTC(videoElement, streamUrl) {
 
         // 连接WebRTC
         const response = await fetch(webrtcUrl.replace('webrtc://', 'https://'));
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const offer = await response.json();
         
         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
@@ -61,25 +60,17 @@ async function play() {
         return;
     }
 
-    // iPhone设备使用WebRTC
-    if (isIOS()) {
+    try {
+        await initWebRTC(videoElement, streamUrl);
+        // 自动播放
         try {
-            await initWebRTC(videoElement, streamUrl);
-            return;
-        } catch (error) {
-            console.error('WebRTC播放失败:', error);
+            await videoElement.play();
+        } catch (playError) {
+            console.warn('自动播放失败，可能需要用户交互:', playError);
         }
+    } catch (error) {
+        console.error('播放失败:', error);
     }
-
-    // 其他设备使用flv.js
-    flvPlayer = flvjs.createPlayer({
-        type: 'flv',
-        url: streamUrl
-    });
-    
-    flvPlayer.attachMediaElement(videoElement);
-    flvPlayer.load();
-    flvPlayer.play();
 }
 
 // 页面加载完成后获取默认播放地址
