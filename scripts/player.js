@@ -91,13 +91,23 @@ async function play() {
     await initPlayer(streamUrl);
 }
 
-// 页面加载完成后检查默认地址
-document.addEventListener('DOMContentLoaded', function() {
-    const defaultUrl = localStorage.getItem('defaultStreamUrl');
-    if (defaultUrl) {
-        document.getElementById('streamUrl').value = defaultUrl;
+async function loadDefaultStreamUrl() {
+    console.log('加载默认流地址');
+    try {
+        const response = await fetch('/_stream');
+        const data = await response.json();
+        if (data.url) {
+            console.log('获取到默认流地址:', data.url);
+            document.getElementById('streamUrl').value = data.url;
+            await initPlayer(data.url);  // 直接初始化播放器
+        }
+    } catch (error) {
+        console.error('加载默认流地址失败:', error);
     }
-});
+}
+
+// 页面加载完成后加载默认流地址
+document.addEventListener('DOMContentLoaded', loadDefaultStreamUrl);
 
 // 页面卸载前销毁播放器
 window.addEventListener('beforeunload', function() {
