@@ -16,10 +16,10 @@ async function initPlayer(videoElement, streamUrl) {
         const container = oldVideo.parentElement;
         oldVideo.remove();
 
-        // 创建新的 video 元素
-        const newVideo = document.createElement('video');
-        newVideo.id = 'videoPlayer';
-        container.appendChild(newVideo);
+        // 创建新的 div 元素作为播放器容器
+        const playerContainer = document.createElement('div');
+        playerContainer.id = 'videoPlayer';
+        container.appendChild(playerContainer);
 
         const config = {
             id: 'videoPlayer',
@@ -43,12 +43,16 @@ async function initPlayer(videoElement, streamUrl) {
                 enableWorker: true,
                 enableStashBuffer: false,
                 stashInitialSize: 128,
-                lazyLoadMaxDuration: 3 * 60
+                lazyLoadMaxDuration: 3 * 60,
+                type: 'flv'  // 明确指定类型
             }
         };
 
-        // 创建播放器
-        player = new FlvPlayer(config);
+        // 正确创建播放器
+        player = new Player({
+            ...config,
+            plugins: [Player.FlvPlayer]
+        });
 
         // 监听事件
         player.on('error', (err) => {
@@ -57,10 +61,28 @@ async function initPlayer(videoElement, streamUrl) {
 
         player.on('ready', () => {
             console.log('播放器就绪');
+            player.play(); // 确保播放开始
         });
 
         player.on('complete', () => {
             console.log('播放完成');
+        });
+
+        // 添加更多事件监听以便调试
+        player.on('waiting', () => {
+            console.log('等待数据...');
+        });
+
+        player.on('playing', () => {
+            console.log('开始播放');
+        });
+
+        player.on('pause', () => {
+            console.log('播放暂停');
+        });
+
+        player.on('ended', () => {
+            console.log('播放结束');
         });
 
         console.log('播放器初始化完成');
