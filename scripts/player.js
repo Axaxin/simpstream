@@ -7,43 +7,33 @@ function destroyPlayers() {
     }
 }
 
-async function initPlayer(videoElement, streamUrl) {
+async function initPlayer(streamUrl) {
     try {
         console.log('初始化播放器...');
         console.log('流地址:', streamUrl);
 
-        // 移除旧的 video 元素
-        const oldVideo = document.getElementById('videoPlayer');
-        const container = oldVideo.parentElement;
-        oldVideo.remove();
-
-        // 创建新的 div 元素
-        const playerContainer = document.createElement('div');
-        playerContainer.id = 'videoPlayer';
-        container.appendChild(playerContainer);
+        destroyPlayers();
 
         // 创建播放器实例
-        const config = {
+        player = new window.Player({
             id: 'videoPlayer',
+            url: streamUrl,
             isLive: true,
             fluid: true,
-            width: '100%',
-            height: '100%',
             autoplay: true,
-            volume: 1,
-            url: streamUrl,
-            type: 'flv',
-            cors: true,
-            hasAudio: true,
-            hasVideo: true,
-            isLive: true,
-            withCredentials: false,
-            enableStashBuffer: false,
-            stashInitialSize: 128,
-            autoCleanupSourceBuffer: true
-        };
-
-        player = new window.FlvPlayer(config);
+            playsinline: true,
+            plugins: [{
+                plugin: window.FlvPlugin,
+                options: {
+                    type: 'flv',
+                    cors: true,
+                    hasAudio: true,
+                    hasVideo: true,
+                    isLive: true,
+                    withCredentials: false
+                }
+            }]
+        });
 
         // 事件监听
         player.on('error', (err) => {
@@ -70,9 +60,6 @@ async function initPlayer(videoElement, streamUrl) {
 }
 
 async function play() {
-    console.log('开始播放流程');
-    destroyPlayers();
-
     const streamUrl = document.getElementById('streamUrl').value;
     if (!streamUrl) {
         console.warn('未提供流地址');
@@ -80,7 +67,7 @@ async function play() {
     }
 
     try {
-        await initPlayer(document.getElementById('videoPlayer'), streamUrl);
+        await initPlayer(streamUrl);
     } catch (error) {
         console.error('播放失败:', error);
     }
