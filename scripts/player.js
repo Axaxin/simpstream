@@ -31,25 +31,19 @@ async function initPlayer(videoElement, streamUrl) {
             height: '100%',
             autoplay: true,
             volume: 1,
-            flv: {
-                mediaDataSource: {
-                    type: 'flv',
-                    url: streamUrl,
-                    isLive: true,
-                    hasAudio: true,
-                    hasVideo: true,
-                    cors: true
-                },
-                config: {
-                    enableWorker: true,
-                    enableStashBuffer: false,
-                    stashInitialSize: 128,
-                    autoCleanupSourceBuffer: true
-                }
-            }
+            url: streamUrl,
+            type: 'flv',
+            cors: true,
+            hasAudio: true,
+            hasVideo: true,
+            isLive: true,
+            withCredentials: false,
+            enableStashBuffer: false,
+            stashInitialSize: 128,
+            autoCleanupSourceBuffer: true
         };
 
-        player = new FlvJsPlayer(config);
+        player = new window.FlvPlayer(config);
 
         // 事件监听
         player.on('error', (err) => {
