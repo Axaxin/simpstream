@@ -1,15 +1,27 @@
 let flvPlayer = null;
-let peerConnection = null;
+let ffmpeg = null;
 
 // 检测是否为iOS设备
 function isIOS() {
     return /iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 }
 
-// 将 FLV 地址转换为 WebRTC 地址
-function convertToWebRTCUrl(url) {
-    // 将 hdl/live/xxx.flv 转换为 webrtc/play/live/xxx
-    return url.replace('/hdl/', '/webrtc/play/').replace('.flv', '');
+function showLoading() {
+    document.getElementById('loading').style.display = 'block';
+}
+
+function hideLoading() {
+    document.getElementById('loading').style.display = 'none';
+}
+
+async function initFFmpeg() {
+    if (!ffmpeg) {
+        showLoading();
+        ffmpeg = new FFmpeg();
+        await ffmpeg.load();
+        hideLoading();
+    }
+    return ffmpeg;
 }
 
 function destroyPlayers() {
@@ -17,85 +29,99 @@ function destroyPlayers() {
         flvPlayer.destroy();
         flvPlayer = null;
     }
-    if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-    }
 }
 
-async function initWebRTCPlayer(streamUrl) {
-    console.log('初始化WebRTC播放器...');
+async function initFFmpegPlayer(streamUrl) {
+    console.log('初始化FFmpeg播放器...');
     
-    // 创建新的 RTCPeerConnection
-    const configuration = {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' }
-        ]
-    };
-    
-    peerConnection = new RTCPeerConnection(configuration);
-    
-    // 添加视频轨道
-    const videoElement = document.getElementById('videoPlayer');
-    peerConnection.ontrack = (event) => {
-        console.log('收到媒体轨道');
-        if (event.streams && event.streams[0]) {
-            videoElement.srcObject = event.streams[0];
-        }
-    };
-    
-    // 创建 offer
-    const offer = await peerConnection.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true
-    });
-    await peerConnection.setLocalDescription(offer);
-    
-    // 发送 offer 到服务器并获取 answer
     try {
-        const webrtcUrl = convertToWebRTCUrl(streamUrl);
-        console.log('WebRTC URL:', webrtcUrl);
-        
-        const response = await fetch(webrtcUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/sdp'
-            },
-            body: offer.sdp
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const answerSDP = await response.text();
-        const answer = new RTCSessionDescription({
-            type: 'answer',
-            sdp: answerSDP
-        });
-        
-        await peerConnection.setRemoteDescription(answer);
-        console.log('WebRTC 连接建立成功');
+        const ffmpeg = await initFFmpeg();
+        const videoElement = document.getElementById('videoPlayer');
         
         // 设置视频元素属性
         videoElement.setAttribute('playsinline', '');
         videoElement.setAttribute('webkit-playsinline', '');
         videoElement.setAttribute('x5-playsinline', '');
-        videoElement.muted = true;
         
+        // 创建 MediaSource
+        const mediaSource = new MediaSource();
+        videoElement.src = URL.createObjectURL(mediaSource);
+        
+        await new Promise((resolve) => {
+            mediaSource.addEventListener('sourceopen', resolve, { once: true });
+        });
+        
+        // 创建 SourceBuffer
+        const mimeType = 'video/mp4; codecs="avc1.42E01E,mp4a.40.2"';
+        const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+        
+        // 开始获取流数据
+        const response = await fetch(streamUrl);
+        if (!response.ok) throw new Error('Failed to fetch stream');
+        
+        const reader = response.body.getReader();
+        
+        // 创建转换流
+        const transformStream = new TransformStream({
+            async transform(chunk, controller) {
+                // 将 FLV 数据转换为 MP4
+                await ffmpeg.writeFile('input.flv', chunk);
+                await ffmpeg.exec([
+                    '-i', 'input.flv',
+                    '-c:v', 'copy',
+                    '-c:a', 'aac',
+                    '-f', 'mp4',
+                    '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
+                    'output.mp4'
+                ]);
+                
+                const data = await ffmpeg.readFile('output.mp4');
+                controller.enqueue(data);
+            }
+        });
+        
+        // 开始处理流
+        reader.read().then(function processChunk({ done, value }) {
+            if (done) {
+                console.log('Stream ended');
+                return;
+            }
+            
+            // 处理数据块
+            transformStream.writable.write(value).then(() => {
+                reader.read().then(processChunk);
+            });
+        });
+        
+        // 处理转换后的数据
+        const reader2 = transformStream.readable.getReader();
+        while (true) {
+            const { done, value } = await reader2.read();
+            if (done) break;
+            
+            // 等待之前的数据处理完成
+            if (sourceBuffer.updating) {
+                await new Promise(resolve => {
+                    sourceBuffer.addEventListener('updateend', resolve, { once: true });
+                });
+            }
+            
+            // 添加到 SourceBuffer
+            sourceBuffer.appendBuffer(value);
+        }
+        
+        // 尝试播放
         try {
             await videoElement.play();
             console.log('播放开始');
-            videoElement.muted = false;
         } catch (e) {
-            console.error('自动播放失败:', e);
-            // 保持静音并重试
+            console.error('播放失败:', e);
             videoElement.muted = true;
-            videoElement.play().catch(e => console.error('静音播放也失败:', e));
+            await videoElement.play();
         }
         
     } catch (error) {
-        console.error('WebRTC 连接失败:', error);
+        console.error('FFmpeg播放器初始化失败:', error);
         throw error;
     }
 }
@@ -109,8 +135,8 @@ async function initPlayer(streamUrl) {
         destroyPlayers();
         
         if (isIOS()) {
-            console.log('使用WebRTC播放器');
-            await initWebRTCPlayer(streamUrl);
+            console.log('使用FFmpeg.wasm播放器');
+            await initFFmpegPlayer(streamUrl);
         } else if (window.flvjs && window.flvjs.isSupported()) {
             console.log('使用flv.js播放器');
             const videoElement = document.getElementById('videoPlayer');

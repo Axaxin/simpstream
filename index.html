@@ -6,6 +6,9 @@
     <title>吉伊视频</title>
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
     <link rel="stylesheet" href="/styles/main.css">
+    <!-- FFmpeg.wasm -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.7/dist/ffmpeg.min.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/util.min.js"></script>
     <!-- 非iOS设备使用flv.js -->
     <script src="https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js"></script>
     <style>
@@ -19,10 +22,22 @@
             width: 100%;
             height: 100%;
         }
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <button class="logout" onclick="logout()">退出登录</button>
+    <div id="loading">正在加载解码器...</div>
     <div class="container">
         <h1>吉伊视频</h1>
         <div class="video-container">
