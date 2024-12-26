@@ -22,53 +22,62 @@ async function initPlayer(videoElement, streamUrl) {
         playerContainer.id = 'videoPlayer';
         container.appendChild(playerContainer);
 
-        // FLV 配置
-        const flvConfig = {
-            type: 'flv',
-            url: streamUrl,
-            isLive: true,
-            hasAudio: true,
-            hasVideo: true,
-            enableStashBuffer: false,
-            stashInitialSize: 128,
-            cors: true
-        };
-
-        // 基础配置
+        // 创建播放器实例
         player = new Player({
             id: 'videoPlayer',
+            url: streamUrl,  // 直接设置url
             isLive: true,
+            autoplay: false, // 禁用自动播放，改为手动控制
             fluid: true,
-            autoplay: true,
-            playsinline: true,
             width: '100%',
             height: '100%',
+            volume: 1,
             plugins: [{
                 plugin: Player.FlvPlayer,
-                options: flvConfig
+                options: {
+                    type: 'flv',  // 指定类型
+                    cors: true,   // 允许跨域
+                    hasAudio: true,
+                    hasVideo: true,
+                    enableWorker: true,
+                    isLive: true,
+                    lazyLoad: false,
+                    enableStashBuffer: false,
+                    stashInitialSize: 128
+                }
             }]
         });
 
         // 事件监听
         player.on('error', (err) => {
             console.error('播放器错误:', err);
-            if (err.mediaError) {
-                console.error('媒体错误:', err.mediaError);
-            }
-            if (err.networkError) {
-                console.error('网络错误:', err.networkError);
-            }
+            // 尝试重新加载
+            setTimeout(() => {
+                console.log('尝试重新加载...');
+                player.reload();
+            }, 1000);
         });
 
         player.on('ready', () => {
             console.log('播放器就绪');
-            try {
-                player.play().catch(e => {
-                    console.error('自动播放失败:', e);
-                });
-            } catch (e) {
-                console.error('播放出错:', e);
-            }
+            // 添加播放按钮
+            const playButton = document.createElement('button');
+            playButton.textContent = '点击播放';
+            playButton.style.position = 'absolute';
+            playButton.style.top = '50%';
+            playButton.style.left = '50%';
+            playButton.style.transform = 'translate(-50%, -50%)';
+            playButton.style.zIndex = '1000';
+            playerContainer.appendChild(playButton);
+
+            playButton.onclick = async () => {
+                try {
+                    await player.play();
+                    playButton.remove();
+                } catch (e) {
+                    console.error('播放失败:', e);
+                }
+            };
         });
 
         player.on('playing', () => {
@@ -77,14 +86,6 @@ async function initPlayer(videoElement, streamUrl) {
 
         player.on('waiting', () => {
             console.log('等待数据...');
-        });
-
-        player.on('loadstart', () => {
-            console.log('开始加载数据');
-        });
-
-        player.on('loadeddata', () => {
-            console.log('数据加载完成');
         });
 
         console.log('播放器初始化完成');
