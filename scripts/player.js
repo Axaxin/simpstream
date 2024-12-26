@@ -29,25 +29,53 @@ function play() {
 
     // iPhone设备使用Jessibuca播放器
     if (isIOS()) {
+        console.log('iOS设备检测到，初始化Jessibuca播放器');
+        
+        // 保存video元素的父容器
         const container = videoElement.parentElement;
+        // 移除原有的video元素
+        videoElement.remove();
+        
+        // 创建新的播放器容器
         const playerContainer = document.createElement('div');
         playerContainer.id = 'jessibucaPlayer';
         playerContainer.style.width = '100%';
-        playerContainer.style.height = '100%';
-        container.replaceChild(playerContainer, videoElement);
+        playerContainer.style.height = '400px'; // 设置固定高度
+        container.appendChild(playerContainer);
 
-        jessibucaPlayer = new window.Jessibuca({
-            container: playerContainer,
-            videoBuffer: 0.2,
-            isResize: true,
-            debug: false,
-            hotKey: false,
-            loadingText: '加载中...',
-            background: '#000000',
-            decoder: '/scripts/decoder.js'
-        });
+        try {
+            console.log('创建Jessibuca实例');
+            jessibucaPlayer = new window.Jessibuca({
+                container: playerContainer,
+                videoBuffer: 0.2,
+                isResize: true,
+                debug: true, // 开启调试模式
+                hotKey: false,
+                loadingText: '加载中...',
+                background: '#000000',
+                decoder: '/scripts/decoder.js'
+            });
 
-        jessibucaPlayer.play(streamUrl);
+            // 添加事件监听
+            jessibucaPlayer.on('error', (error) => {
+                console.error('Jessibuca播放器错误:', error);
+            });
+
+            jessibucaPlayer.on('load', () => {
+                console.log('Jessibuca解码器加载成功');
+            });
+
+            jessibucaPlayer.on('play', () => {
+                console.log('Jessibuca开始播放');
+            });
+
+            console.log('开始播放流:', streamUrl);
+            jessibucaPlayer.play(streamUrl);
+        } catch (error) {
+            console.error('Jessibuca初始化失败:', error);
+            // 发生错误时恢复video元素
+            container.appendChild(videoElement);
+        }
         return;
     }
 
