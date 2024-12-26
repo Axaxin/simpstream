@@ -1,20 +1,102 @@
 let flvPlayer = null;
+let peerConnection = null;
 
 // 检测是否为iOS设备
 function isIOS() {
     return /iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 }
 
-// 将 FLV 地址转换为 MP4 地址
-function convertToMP4Url(url) {
-    // 将 hdl/live/xxx.flv 转换为 fmp4/live/xxx.mp4
-    return url.replace('/hdl/', '/fmp4/').replace('.flv', '.mp4');
+// 将 FLV 地址转换为 WebRTC 地址
+function convertToWebRTCUrl(url) {
+    // 将 hdl/live/xxx.flv 转换为 webrtc/play/live/xxx
+    return url.replace('/hdl/', '/webrtc/play/').replace('.flv', '');
 }
 
 function destroyPlayers() {
     if (flvPlayer) {
         flvPlayer.destroy();
         flvPlayer = null;
+    }
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+}
+
+async function initWebRTCPlayer(streamUrl) {
+    console.log('初始化WebRTC播放器...');
+    
+    // 创建新的 RTCPeerConnection
+    const configuration = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' }
+        ]
+    };
+    
+    peerConnection = new RTCPeerConnection(configuration);
+    
+    // 添加视频轨道
+    const videoElement = document.getElementById('videoPlayer');
+    peerConnection.ontrack = (event) => {
+        console.log('收到媒体轨道');
+        if (event.streams && event.streams[0]) {
+            videoElement.srcObject = event.streams[0];
+        }
+    };
+    
+    // 创建 offer
+    const offer = await peerConnection.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+    });
+    await peerConnection.setLocalDescription(offer);
+    
+    // 发送 offer 到服务器并获取 answer
+    try {
+        const webrtcUrl = convertToWebRTCUrl(streamUrl);
+        console.log('WebRTC URL:', webrtcUrl);
+        
+        const response = await fetch(webrtcUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/sdp'
+            },
+            body: offer.sdp
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const answerSDP = await response.text();
+        const answer = new RTCSessionDescription({
+            type: 'answer',
+            sdp: answerSDP
+        });
+        
+        await peerConnection.setRemoteDescription(answer);
+        console.log('WebRTC 连接建立成功');
+        
+        // 设置视频元素属性
+        videoElement.setAttribute('playsinline', '');
+        videoElement.setAttribute('webkit-playsinline', '');
+        videoElement.setAttribute('x5-playsinline', '');
+        videoElement.muted = true;
+        
+        try {
+            await videoElement.play();
+            console.log('播放开始');
+            videoElement.muted = false;
+        } catch (e) {
+            console.error('自动播放失败:', e);
+            // 保持静音并重试
+            videoElement.muted = true;
+            videoElement.play().catch(e => console.error('静音播放也失败:', e));
+        }
+        
+    } catch (error) {
+        console.error('WebRTC 连接失败:', error);
+        throw error;
     }
 }
 
@@ -27,75 +109,8 @@ async function initPlayer(streamUrl) {
         destroyPlayers();
         
         if (isIOS()) {
-            console.log('使用原生播放器(MP4)');
-            const videoElement = document.getElementById('videoPlayer');
-            const mp4Url = convertToMP4Url(streamUrl);
-            console.log('MP4流地址:', mp4Url);
-            
-            // 重置视频元素
-            videoElement.pause();
-            videoElement.removeAttribute('src');
-            videoElement.load();
-            
-            // 设置必要的属性
-            videoElement.setAttribute('playsinline', '');  // 防止全屏
-            videoElement.setAttribute('webkit-playsinline', '');  // iOS Safari
-            videoElement.setAttribute('x5-playsinline', '');  // 微信浏览器
-            
-            // 设置缓冲和播放参数
-            videoElement.preload = 'auto';  // 预加载
-            videoElement.autoplay = true;   // 自动播放
-            videoElement.muted = true;      // 默认静音，提高自动播放成功率
-            
-            // 设置缓冲策略
-            videoElement.buffered;          // 激活缓冲区
-            videoElement.preload = 'auto';  // 预加载视频
-            
-            // 设置播放策略
-            videoElement.defaultPlaybackRate = 1.0;  // 播放速率
-            videoElement.playbackRate = 1.0;
-            
-            // 监听缓冲事件
-            videoElement.addEventListener('waiting', () => {
-                console.log('视频缓冲中...');
-            });
-            
-            videoElement.addEventListener('canplay', () => {
-                console.log('视频可以播放');
-                videoElement.play().catch(e => console.error('播放失败:', e));
-            });
-            
-            // 设置视频源并添加时间戳防止缓存
-            videoElement.src = `${mp4Url}?_t=${Date.now()}`;
-            
-            // 错误处理
-            videoElement.onerror = function(e) {
-                console.error('视频播放错误:', e);
-                console.error('错误代码:', videoElement.error.code);
-                console.error('错误信息:', videoElement.error.message);
-                alert('播放出错，请刷新页面重试');
-            };
-            
-            // 尝试播放
-            try {
-                // 先加载一些数据
-                await new Promise((resolve) => {
-                    videoElement.addEventListener('loadedmetadata', resolve, { once: true });
-                    setTimeout(resolve, 5000); // 5秒超时
-                });
-                
-                await videoElement.play();
-                console.log('播放开始');
-                
-                // 取消静音（如果自动播放成功）
-                videoElement.muted = false;
-            } catch (e) {
-                console.error('自动播放失败:', e);
-                // 保持静音并重试
-                videoElement.muted = true;
-                videoElement.play().catch(e => console.error('静音播放也失败:', e));
-            }
-
+            console.log('使用WebRTC播放器');
+            await initWebRTCPlayer(streamUrl);
         } else if (window.flvjs && window.flvjs.isSupported()) {
             console.log('使用flv.js播放器');
             const videoElement = document.getElementById('videoPlayer');
