@@ -17,8 +17,8 @@ async function initPlayer(streamUrl) {
         const videoElement = document.getElementById('videoPlayer');
         videoElement.volume = 0.8;
 
-        if (flv.isSupported()) {
-            flvPlayer = flv.createPlayer({
+        if (window.flvjs && window.flvjs.isSupported()) {
+            flvPlayer = window.flvjs.createPlayer({
                 type: 'flv',
                 url: streamUrl,
                 isLive: true,
