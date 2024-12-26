@@ -14,90 +14,43 @@ async function initPlayer(streamUrl) {
 
         destroyPlayers();
 
-        // 创建播放器实例
-        player = new window.Player({
+        // 使用 xgplayer-flv.js
+        player = new FlvJsPlayer({
             id: 'videoPlayer',
             url: streamUrl,
             isLive: true,
-            fluid: true,
-            autoplay: true,
             playsinline: true,
-            plugins: [{
-                plugin: window.FlvPlugin,
-                options: {
-                    type: 'flv',
-                    cors: true,
-                    hasAudio: true,
-                    hasVideo: true,
-                    isLive: true,
-                    withCredentials: false,
-                    enableWorker: true,
-                    lazyLoad: false,
-                    stashInitialSize: 128
-                }
-            }]
+            height: '100%',
+            width: '100%',
+            volume: 0.8,
+            cors: true,
+            enableStashBuffer: false,
+            stashInitialSize: 128,
+            autoCleanupSourceBuffer: true,
+            flvOptions: {
+                enableWorker: true,
+                hasAudio: true,
+                hasVideo: true,
+                isLive: true
+            }
         });
 
         // 事件监听
         player.on('error', (err) => {
             console.error('播放器错误:', err);
-            if (err.data) {
-                console.error('错误详情:', err.data);
-            }
-            if (err.message) {
-                console.error('错误消息:', err.message);
-            }
         });
 
         player.on('ready', () => {
-            console.log('播放器就绪，尝试播放');
-            try {
-                player.play().catch(e => {
-                    console.error('播放调用失败:', e);
-                });
-            } catch (e) {
-                console.error('播放调用异常:', e);
-            }
+            console.log('播放器就绪');
+            player.play();
         });
 
         player.on('playing', () => {
-            console.log('开始播放中');
+            console.log('开始播放');
         });
 
         player.on('waiting', () => {
             console.log('等待数据...');
-        });
-
-        player.on('loadstart', () => {
-            console.log('开始加载数据');
-        });
-
-        player.on('loadeddata', () => {
-            console.log('数据加载完成');
-        });
-
-        player.on('canplay', () => {
-            console.log('可以开始播放');
-        });
-
-        player.on('pause', () => {
-            console.log('播放暂停');
-        });
-
-        player.on('seeking', () => {
-            console.log('正在跳转');
-        });
-
-        player.on('seeked', () => {
-            console.log('跳转完成');
-        });
-
-        player.on('timeupdate', () => {
-            console.log('播放进度更新:', player.currentTime);
-        });
-
-        player.on('ended', () => {
-            console.log('播放结束');
         });
 
         console.log('播放器初始化完成');
