@@ -21,18 +21,27 @@ function destroyPlayers() {
 }
 
 // 获取流地址
-function getStreamUrl(isHLS = false) {
-    // 从环境变量获取基础FLV地址
-    const flvUrl = process.env.STREAM_URL || 'https://winlive.metacorn.cc/hdl/live/win.flv';
-    
-    if (isHLS) {
-        // 将FLV地址转换为HLS地址
-        return flvUrl
-            .replace('/hdl/', '/hls/')
-            .replace('.flv', '.m3u8');
+async function getStreamUrl(isHLS = false) {
+    try {
+        // 从环境变量获取基础FLV地址
+        const response = await fetch('/_stream');
+        const data = await response.json();
+        const flvUrl = data.url || 'https://winlive.metacorn.cc/hdl/live/win.flv';
+        
+        if (isHLS) {
+            // 将FLV地址转换为HLS地址
+            return flvUrl
+                .replace('/hdl/', '/hls/')
+                .replace('.flv', '.m3u8');
+        }
+        
+        return flvUrl;
+    } catch (error) {
+        console.error('获取流地址失败:', error);
+        // 使用默认地址作为后备
+        const defaultUrl = 'https://winlive.metacorn.cc/hdl/live/win.flv';
+        return isHLS ? defaultUrl.replace('/hdl/', '/hls/').replace('.flv', '.m3u8') : defaultUrl;
     }
-    
-    return flvUrl;
 }
 
 async function initPlayer(streamUrl) {
@@ -48,8 +57,7 @@ async function initPlayer(streamUrl) {
     
     if (isIOS()) {
         console.log('使用原生HLS播放器');
-        const hlsUrl = getStreamUrl(true);
-        videoElement.src = hlsUrl;
+        videoElement.src = streamUrl;  
         try {
             await videoElement.play();
         } catch (error) {
@@ -60,7 +68,7 @@ async function initPlayer(streamUrl) {
         if (flv.isSupported()) {
             flvPlayer = flv.createPlayer({
                 type: 'flv',
-                url: streamUrl,
+                url: streamUrl,  
                 isLive: true
             });
             flvPlayer.attachMediaElement(videoElement);
@@ -76,13 +84,24 @@ async function initPlayer(streamUrl) {
     }
 }
 
-function play() {
-    const streamUrl = document.getElementById('streamUrl').value || getStreamUrl();
-    initPlayer(streamUrl);
+async function play() {
+    let streamUrl = document.getElementById('streamUrl').value;
+    if (!streamUrl) {
+        // 如果输入框为空，获取默认地址
+        streamUrl = await getStreamUrl();
+        document.getElementById('streamUrl').value = streamUrl;
+    }
+    
+    // 根据设备类型转换地址格式
+    if (isIOS()) {
+        streamUrl = streamUrl.replace('/hdl/', '/hls/').replace('.flv', '.m3u8');
+    }
+    
+    await initPlayer(streamUrl);
 }
 
 async function loadDefaultStreamUrl() {
-    const defaultUrl = getStreamUrl();
+    const defaultUrl = await getStreamUrl();
     document.getElementById('streamUrl').value = defaultUrl;
     await initPlayer(defaultUrl);
 }
