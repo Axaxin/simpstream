@@ -18,6 +18,7 @@
         video {
             width: 100%;
             height: 100%;
+            background: #000;
         }
         #loading {
             position: fixed;
@@ -30,6 +31,12 @@
             border-radius: 10px;
             display: none;
         }
+        .error-message {
+            color: red;
+            text-align: center;
+            margin: 10px 0;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -40,11 +47,35 @@
         <div class="video-container">
             <video id="videoPlayer" controls playsinline webkit-playsinline x5-playsinline></video>
         </div>
+        <div id="errorMessage" class="error-message"></div>
         <div class="controls">
             <input type="text" id="streamUrl" placeholder="输入播放地址">
             <button onclick="play()">播放</button>
         </div>
     </div>
+    <script>
+        // 检查flv.js是否正确加载
+        window.addEventListener('load', function() {
+            if (typeof flv === 'undefined') {
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('errorMessage').textContent = 'FLV.js 加载失败，正在重试...';
+                // 重新加载flv.js
+                var script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js';
+                script.onload = function() {
+                    document.getElementById('errorMessage').style.display = 'none';
+                    // 重新初始化播放器
+                    if (typeof loadDefaultStreamUrl === 'function') {
+                        loadDefaultStreamUrl();
+                    }
+                };
+                script.onerror = function() {
+                    document.getElementById('errorMessage').textContent = 'FLV.js 加载失败，请刷新页面重试';
+                };
+                document.head.appendChild(script);
+            }
+        });
+    </script>
     <script src="/scripts/player.js"></script>
     <script src="/scripts/auth.js"></script>
 </body>

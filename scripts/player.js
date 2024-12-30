@@ -57,7 +57,7 @@ async function initPlayer(streamUrl) {
     
     if (isIOS()) {
         console.log('使用原生HLS播放器');
-        videoElement.src = streamUrl;  
+        videoElement.src = streamUrl;
         try {
             await videoElement.play();
         } catch (error) {
@@ -65,26 +65,42 @@ async function initPlayer(streamUrl) {
         }
     } else {
         console.log('使用FLV.js播放器');
-        if (flv.isSupported()) {
-            flvPlayer = flv.createPlayer({
-                type: 'flv',
-                url: streamUrl,  
-                isLive: true
-            });
-            flvPlayer.attachMediaElement(videoElement);
-            flvPlayer.load();
+        // 确保flv.js已加载
+        if (typeof window.flvjs === 'undefined') {
+            console.error('FLV.js未加载');
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('errorMessage').textContent = 'FLV.js 未加载，请刷新页面重试';
+            return;
+        }
+
+        if (window.flvjs.isSupported()) {
             try {
+                flvPlayer = window.flvjs.createPlayer({
+                    type: 'flv',
+                    url: streamUrl,
+                    isLive: true
+                });
+                
+                flvPlayer.attachMediaElement(videoElement);
+                flvPlayer.load();
                 await flvPlayer.play();
             } catch (error) {
                 console.error('播放失败:', error);
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('errorMessage').textContent = '播放失败，请检查地址是否正确';
             }
         } else {
             console.error('您的浏览器不支持FLV播放');
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('errorMessage').textContent = '您的浏览器不支持FLV播放';
         }
     }
 }
 
 async function play() {
+    // 隐藏之前的错误信息
+    document.getElementById('errorMessage').style.display = 'none';
+    
     let streamUrl = document.getElementById('streamUrl').value;
     if (!streamUrl) {
         // 如果输入框为空，获取默认地址
